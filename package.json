@@ -1,0 +1,17 @@
+{
+  "name": "lilagents-headers-tool",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.1.3",
+  "description": "Scan any site's live security headers, see what's missing in plain English, and copy a ready-to-paste fix for Netlify, Apache, Nginx, or Vercel. Free tool by lilAgents.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^6.4.4"
+  }
+}

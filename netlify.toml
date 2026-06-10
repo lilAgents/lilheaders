@@ -1,0 +1,33 @@
+[build]
+  command = "pnpm build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Serverless function that reads a page's response headers server-side
+# (browsers can't read cross-origin response headers).
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Cache-control for the static assets Astro fingerprints.
+[[headers]]
+  for = "/_astro/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Practice what the tool preaches.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# No Content-Security-Policy on purpose: CSP is site-specific and a wrong one
+# breaks things. This netlify.toml is the single source of truth for headers;
+# deploy via Git or run `netlify deploy` from THIS folder so another project's
+# headers can't leak in.

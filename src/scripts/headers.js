@@ -20,7 +20,7 @@ function initTheme() {
   btn.addEventListener('click', () => {
     const next = current() === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
-    try { localStorage.setItem('lilheaders-theme', next); } catch (e) {}
+    try { localStorage.setItem('lilheaders-theme', next); } catch (e) { /* storage may be unavailable; safe to ignore */ }
     setThemeIcon(btn, next);
   });
 }
@@ -224,7 +224,7 @@ function fallbackCopy(text, done) {
   const ta = document.createElement('textarea');
   ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
   document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); } catch (e) {}
+  try { document.execCommand('copy'); } catch (e) { /* storage may be unavailable; safe to ignore */ }
   document.body.removeChild(ta); done();
 }
 

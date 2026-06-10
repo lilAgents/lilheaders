@@ -528,7 +528,7 @@ html[data-theme="dark"] .seg__btn.is-active {
 
 /* ---------- Cross-link CTA ---------- */
 .cta {
-  margin-top: 26px;
+  margin: 26px 0 44px;
   display: flex;
   align-items: center;
   gap: 12px;

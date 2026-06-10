@@ -29,12 +29,25 @@ function initTheme() {
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /* ---------- checks ---------- */
-function buildChecks(finalUrl, h) {
+function buildChecks(finalUrl, h, cert) {
   const c = [];
   const isHttps = finalUrl.startsWith('https://');
 
   // HTTPS itself
   if (!isHttps) c.push({ k: 'err', t: 'Site served over plain HTTP', m: 'Everything else is secondary until the site is on HTTPS.', rec: null });
+
+  // TLS certificate
+  if (isHttps && cert) {
+    if (cert.authorized === false) {
+      c.push({ k: 'err', t: 'Certificate problem', m: `The certificate chain did not validate (${cert.authError || 'unknown error'}). Browsers may be showing visitors a warning page.`, rec: null });
+    } else if (cert.daysLeft <= 7) {
+      c.push({ k: 'err', t: `Certificate expires in ${cert.daysLeft} day${cert.daysLeft === 1 ? '' : 's'}`, m: `Valid until ${cert.validTo}. When it lapses, every visitor gets a full-page security warning. Renew immediately.`, rec: null });
+    } else if (cert.daysLeft <= 21) {
+      c.push({ k: 'warn', t: `Certificate expires in ${cert.daysLeft} days`, m: `Valid until ${cert.validTo}. Most hosts auto-renew around the 30-day mark; confirm it is on track.`, rec: null });
+    } else {
+      c.push({ k: 'ok', t: `Certificate valid for ${cert.daysLeft} more days`, m: `Issued by ${cert.issuer || 'an unknown CA'}, valid until ${cert.validTo}.${cert.altNames > 1 ? ` Covers ${cert.altNames} hostnames.` : ''}`, rec: null });
+    }
+  }
 
   // HSTS
   const hsts = h['strict-transport-security'];
@@ -191,7 +204,7 @@ async function run() {
     const d = await res.json();
     if (d.error) { $('#results').innerHTML = note('err', d.error); return; }
     const domain = (() => { try { return new URL(d.url).hostname.replace(/^www\./, ''); } catch { return raw; } })();
-    const checks = buildChecks(d.url, d.headers || {});
+    const checks = buildChecks(d.url, d.headers || {}, d.cert || null);
     $('#results').innerHTML = summaryHtml(domain, checks) + `<div class="dsec"><div class="dsec-h">Headers on ${esc(d.url)}</div>${checks.map(checkCard).join('')}</div>`;
   } catch (e) {
     $('#results').innerHTML = note('err', 'Could not reach the scanner. If you are running locally without Netlify, the scan function is unavailable.');

@@ -1,9 +1,35 @@
 // lilHeaders fetcher.
 // Reads a live page's response headers server-side (browsers can't read
-// cross-origin response headers) and returns them with the final URL.
+// cross-origin response headers) and returns them with the final URL, plus a
+// look at the TLS certificate.
+
+import tls from 'node:tls';
 
 const MAX_HOPS = 5;
 const TIMEOUT_MS = 9000;
+
+function getCert(host) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (v) => { if (!settled) { settled = true; resolve(v); } };
+    const sock = tls.connect({ host, port: 443, servername: host, timeout: 5000, rejectUnauthorized: false }, () => {
+      const c = sock.getPeerCertificate();
+      const out = c && c.valid_to ? {
+        issuer: (c.issuer && (c.issuer.O || c.issuer.CN)) || null,
+        validFrom: c.valid_from || null,
+        validTo: c.valid_to || null,
+        daysLeft: Math.ceil((new Date(c.valid_to) - Date.now()) / 86400000),
+        authorized: sock.authorized,
+        authError: sock.authorized ? null : String(sock.authorizationError || ''),
+        altNames: c.subjectaltname ? c.subjectaltname.split(',').length : 0,
+      } : null;
+      sock.end();
+      done(out);
+    });
+    sock.on('error', () => done(null));
+    sock.on('timeout', () => { sock.destroy(); done(null); });
+  });
+}
 
 // Block local / private / link-local targets (basic SSRF guard), checked on
 // every hop since a public URL can redirect to a private one.
@@ -81,5 +107,11 @@ export const handler = async (event) => {
   const headers = {};
   resp.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
 
-  return json(200, { url: current, status: resp.status, headers });
+  let cert = null;
+  try {
+    const finalU = new URL(current);
+    if (finalU.protocol === 'https:') cert = await getCert(finalU.hostname);
+  } catch (e) { cert = null; }
+
+  return json(200, { url: current, status: resp.status, headers, cert });
 };
